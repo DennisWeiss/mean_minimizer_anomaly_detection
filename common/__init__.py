@@ -1,3 +1,5 @@
+import torch
+
 def norm_of_kde(X, kernel_bandwidth):
     X_new = X.repeat(X.size(dim=0), 1, 1)
     X_new_tr = X.repeat(X.size(dim=0), 1, 1).transpose(0, 1)

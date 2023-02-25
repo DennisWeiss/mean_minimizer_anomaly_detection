@@ -40,12 +40,18 @@ def get_color_distortion(scale=0.5):  # 0.5 for CIFAR10 by default
 class Transform:
     def __init__(self):
         transform1 = torchvision.transforms.Compose([torchvision.transforms.RandomResizedCrop(32),
-                                          torchvision.transforms.RandomHorizontalFlip(p=0.5),
-                                          get_color_distortion(scale=0.5),
-                                          torchvision.transforms.ToTensor()])
+                                                     torchvision.transforms.ToTensor()])
 
-        self.transforms = [torchvision.transforms.Identity(), transform1]
+        transform2 = torchvision.transforms.Compose([torchvision.transforms.RandomHorizontalFlip(p=1),
+                                                     torchvision.transforms.ToTensor()])
+
+        transform3 = torchvision.transforms.Compose([get_color_distortion(scale=0.5),
+                                                     torchvision.transforms.ToTensor()])
+
+
+
+        self.transforms = [torchvision.transforms.ToTensor(), transform1, transform2, transform3]
 
     def __call__(self, x):
-        return (transform(x) for transform in self.transforms)
+        return [transform(x) for transform in self.transforms]
 

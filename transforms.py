@@ -28,13 +28,9 @@ class Solarization(object):
             return img
 
 
-def get_color_distortion(scale=0.5):  # 0.5 for CIFAR10 by default
-    # s is the strength of color distortion
+def get_color_distortion(scale=0.5):
     color_jitter = torchvision.transforms.ColorJitter(0.8 * scale, 0.8 * scale, 0.8 * scale, 0.2 * scale)
-    rnd_color_jitter = torchvision.transforms.RandomApply([color_jitter], p=0.8)
-    rnd_gray = torchvision.transforms.RandomGrayscale(p=0.2)
-    color_distort = torchvision.transforms.Compose([rnd_color_jitter, rnd_gray])
-    return color_distort
+    return color_jitter
 
 
 class Transform:
@@ -42,15 +38,25 @@ class Transform:
         transform1 = torchvision.transforms.Compose([torchvision.transforms.RandomResizedCrop(32),
                                                      torchvision.transforms.ToTensor()])
 
-        transform2 = torchvision.transforms.Compose([torchvision.transforms.RandomHorizontalFlip(p=1),
+        transform2 = torchvision.transforms.Compose([torchvision.transforms.Grayscale(num_output_channels=3),
                                                      torchvision.transforms.ToTensor()])
 
         transform3 = torchvision.transforms.Compose([get_color_distortion(scale=0.5),
                                                      torchvision.transforms.ToTensor()])
 
+        total_transform = torchvision.transforms.Compose([torchvision.transforms.RandomResizedCrop(32),
+                                                          torchvision.transforms.RandomHorizontalFlip(p=0.5),
+                                                          get_color_distortion(scale=0.5),
+                                                          torchvision.transforms.ToTensor()])
 
+        transform_x = torchvision.transforms.Compose([
+            torchvision.transforms.RandomResizedCrop(32, scale=(0.08, 0.8)),
+            torchvision.transforms.RandomHorizontalFlip(p=0.5),
+            get_color_distortion(scale=0.5),
+            torchvision.transforms.ToTensor()]
+        )
 
-        self.transforms = [torchvision.transforms.ToTensor(), transform1, transform2, transform3]
+        self.transforms = [torchvision.transforms.ToTensor(), transform2, transform1, transform3]
 
     def __call__(self, x):
         return [transform(x) for transform in self.transforms]

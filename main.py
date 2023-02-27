@@ -1,15 +1,20 @@
 import torch
 import torchvision
 from tqdm import tqdm
+from sklearn.metrics import roc_auc_score
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
 
 from dataset import NormalCIFAR10Dataset, AnomalousCIFAR10Dataset, NormalCIFAR10DatasetRotationAugmented, AnomalousCIFAR10DatasetRotationAugmented
 from transforms import Transform
 from model import Model
 from common import norm_of_kde
-from sklearn.metrics import roc_auc_score
 
 
-EPOCHS = 100
+
+BATCH_SIZE = 256
+PROJECTION_DIM = 256
+EPOCHS = 200
 LEARNING_RATE = 3e-6
 
 
@@ -35,18 +40,33 @@ def evaluate_auroc(models, test_loader_normal, test_loader_anomalous):
     anomaly_scores = []
 
     for loader, type in [(test_loader_normal, 'normal'), (test_loader_anomalous, 'anomalous')]:
-        for [x0, x1, x2, x3] in loader:
-            x0, x1, x2, x3 = x0.to(device), x1.to(device), x2.to(device), x3.to(device)
-            z0, z1, z2, z3 = models[0](x0), models[1](x1), models[2](x2), models[3](x3)
-            anomaly_scores.append(((z0 + z1 + z2 + z3) ** 2).sum(dim=1)[0].item())
+        for xs in loader:
+            z_sum = torch.zeros(BATCH_SIZE, PROJECTION_DIM).to(device)
+            for model, x in zip(models, xs):
+                x = x.to(device)
+                z = model(x)
+                z_sum += z
+            anomaly_scores.append((z_sum ** 2).sum(dim=1)[0].item())
             y_test.append(0 if type == 'normal' else 1)
 
     return roc_auc_score(y_test, anomaly_scores)
 
 
-for normal_class in range(1, 2):
+def visualize_tsne(z_all, batch_size):
+    z_tsne_embedded = TSNE(n_components=2).fit_transform(z_all)
+    figure = plt.figure()
+    plt.scatter(
+        z_tsne_embedded[:, 0],
+        z_tsne_embedded[:, 1],
+        c=['red' for i in range(batch_size)] + ['blue' for i in range(batch_size)] + ['green' for i in range(batch_size)] + ['yellow' for i in range(batch_size)],
+        marker='2'
+    )
+    plt.savefig('tsne.png')
+
+
+for normal_class in range(3, 4):
     train_data = NormalCIFAR10Dataset(normal_class, train=True, transform=Transform())
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=256, shuffle=True, drop_last=True)
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
     test_data_normal = NormalCIFAR10Dataset(normal_class, train=False, transform=Transform())
     test_loader_normal = torch.utils.data.DataLoader(test_data_normal, batch_size=1, shuffle=False, drop_last=False)
@@ -71,39 +91,36 @@ for normal_class in range(1, 2):
         summed_kde_loss = 0
         summed_loss = 0
 
-        mean_0 = torch.zeros(256).to(device)
-        mean_1 = torch.zeros(256).to(device)
-        mean_2 = torch.zeros(256).to(device)
-        mean_3 = torch.zeros(256).to(device)
-
         if epoch < 10 or epoch % 5 == 0:
             print(f'AUROC: {(100 * evaluate_auroc(models, test_loader_normal, test_loader_anomalous)):.4f}%')
 
         for model in models:
             model.train()
 
-        for batch, [x0, x1, x2, x3] in enumerate(iterator):
-            x0, x1, x2, x3 = x0.to(device), x1.to(device), x2.to(device), x3.to(device)
+        for batch, xs in enumerate(iterator):
+            z_sum = torch.zeros(BATCH_SIZE, PROJECTION_DIM).to(device)
+            z_all = torch.zeros(0, PROJECTION_DIM).to(device)
+            zs = []
 
-            for optimizer_model in optimizers_models:
-                optimizer_model.zero_grad()
+            for model, x in zip(models, xs):
+                model.zero_grad()
+                x = x.to(device)
+                z = model(x)
+                zs.append(z)
+                z_sum += z
+                z_all = torch.cat((z_all, z), dim=0)
 
-            z0, z1, z2, z3 = models[0](x0), models[1](x1), models[2](x2), models[3](x3)
+            mean_loss = (z_sum ** 2).sum(dim=1).mean()
 
-            mean_0 = mean_0 + (z0.mean(dim=0) - mean_0) / (batch + 1)
-            mean_1 = mean_1 + (z1.mean(dim=0) - mean_1) / (batch + 1)
-            mean_2 = mean_2 + (z2.mean(dim=0) - mean_2) / (batch + 1)
-            mean_3 = mean_3 + (z3.mean(dim=0) - mean_3) / (batch + 1)
+            if batch == 0:
+                visualize_tsne(z_all.detach().cpu().numpy(), BATCH_SIZE)
 
-            mean_loss = ((z0 + z1 + z2 + z3) ** 2).sum(dim=1).mean()
-            # z_all = torch.cat((z0, z1, z2, z3), dim=0)
+            kde_loss = norm_of_kde(z_all, 0.5)
 
-            # kde_loss = norm_of_kde(z_all, 0.1)
-
-            kde_loss = torch.as_tensor(0.0, device=device)
-
-            for z in [z0, z1, z2, z3]:
-                kde_loss += norm_of_kde(z, 0.5)
+            # kde_loss = torch.as_tensor(0.0, device=device)
+            #
+            # for z in zs:
+            #     kde_loss += norm_of_kde(z, 0.2)
 
             loss = mean_loss + 1 * kde_loss
 

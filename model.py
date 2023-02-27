@@ -9,9 +9,9 @@ class Model(nn.Module):
         self.projection_size = 256
 
         # self.backbone = torchvision.models.resnet18(pretrained=False)
-
+        #
         # self.feature_size = self.backbone.fc.in_features
-
+        #
         # self.backbone.conv1 = nn.Conv2d(3, 64, 3, 1, 1, bias=False)
         # self.backbone.maxpool = nn.Identity()
         # self.backbone.fc = nn.Identity()

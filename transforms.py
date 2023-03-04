@@ -2,6 +2,7 @@ import random
 
 import torch
 import torchvision
+import torchvision.transforms.functional as F
 from PIL import Image, ImageOps, ImageFilter
 
 
@@ -34,7 +35,7 @@ def get_color_distortion(scale=0.5):
 
 
 class Transform:
-    def __init__(self):
+    def __init__(self, test=False):
         transform1 = torchvision.transforms.Compose([torchvision.transforms.RandomResizedCrop(32),
                                                      torchvision.transforms.ToTensor()])
 
@@ -56,7 +57,12 @@ class Transform:
             torchvision.transforms.ToTensor()]
         )
 
-        self.transforms = [torchvision.transforms.ToTensor(), transform2, transform1, transform3]
+        # self.transforms = [torchvision.transforms.ToTensor() for i in range(4)]
+
+        if False:
+            self.transforms = [torchvision.transforms.ToTensor() for i in range(4)]
+        else:
+            self.transforms = [torchvision.transforms.ToTensor(), transform1, transform2, transform3]
 
     def __call__(self, x):
         return [transform(x) for transform in self.transforms]

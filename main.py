@@ -17,10 +17,10 @@ from common import get_indices_with_lowest
 
 
 
-BATCH_SIZE = 256
+BATCH_SIZE = 200
 PROJECTION_DIM = 256
 EPOCHS = 200
-LEARNING_RATE = 1e-5
+LEARNING_RATE = 3e-6
 
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -122,7 +122,8 @@ def visualize_tsne(z_all, batch_size):
         z_tsne_embedded[:, 0],
         z_tsne_embedded[:, 1],
         c=['red' for i in range(batch_size)] + ['blue' for i in range(batch_size)]
-          + ['green' for i in range(batch_size)] + ['yellow' for i in range(batch_size)]
+          # + ['green' for i in range(batch_size)] + ['yellow' for i in range(batch_size)]
+          # + ['orange' for i in range(batch_size)]
         # + ['orange' for i in range(batch_size)] + ['purple' for i in range(batch_size)] + ['pink' for i in range(batch_size)] + ['black' for i in range(batch_size)]
         ,
         marker='2'
@@ -130,7 +131,7 @@ def visualize_tsne(z_all, batch_size):
     plt.savefig('tsne.png')
 
 
-for normal_class in range(7, 8):
+for normal_class in range(5, 6):
     train_data = NormalCIFAR10Dataset(normal_class, train=True, transform=Transform(test=False))
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
@@ -142,10 +143,10 @@ for normal_class in range(7, 8):
 
     models = []
     optimizers_models = []
+
     for i in range(4):
         model = Model().to(device)
         optimizer_model = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-
         models.append(model)
         optimizers_models.append(optimizer_model)
 
@@ -183,14 +184,15 @@ for normal_class in range(7, 8):
             if batch == 0:
                 visualize_tsne(z_all.detach().cpu().numpy(), BATCH_SIZE)
 
-            # kde_loss = norm_of_kde(z_all, 0.2)
 
-            kde_loss = torch.as_tensor(0.0, device=device)
+            kde_loss = norm_of_kde(z_all, 0.5)
 
-            for z in zs:
-                kde_loss += norm_of_kde(z, 0.2)
+            # kde_loss = torch.as_tensor(0.0, device=device)
+            #
+            # for z in zs:
+            #     kde_loss += norm_of_kde(z, 0.2)
 
-            loss = mean_loss + 0.3 * kde_loss
+            loss = 0.3 * mean_loss + 0.3 * kde_loss
 
             summed_mean_loss += mean_loss.item()
             summed_kde_loss += kde_loss.item()

@@ -59,7 +59,7 @@ class Transform:
 
         # self.transforms = [torchvision.transforms.ToTensor() for i in range(4)]
 
-        if False:
+        if test:
             self.transforms = [torchvision.transforms.ToTensor() for i in range(4)]
         else:
             self.transforms = [torchvision.transforms.ToTensor(), transform1, transform2, transform3]

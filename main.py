@@ -17,7 +17,7 @@ from common import get_indices_with_lowest
 
 
 
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 PROJECTION_DIM = 256
 EPOCHS = 200
 LEARNING_RATE = 3e-6

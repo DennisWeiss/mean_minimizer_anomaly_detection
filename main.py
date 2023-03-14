@@ -7,7 +7,7 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 from torchvision.utils import save_image
 
-from pyod.models.knn import KNN
+# from pyod.models.knn import KNN
 
 from dataset import NormalCIFAR10Dataset, AnomalousCIFAR10Dataset, NormalCIFAR10DatasetRotationAugmented, AnomalousCIFAR10DatasetRotationAugmented
 from transforms import Transform
@@ -57,38 +57,38 @@ def save_anomaly_score_samples(anomaly_scores, test_data_normal, test_data_anoma
         save_image(test_data_anomalous[highest_anomalous[i]][0], f'./results/highest_anomalous_{i}.png')
 
 
-def evaluate_auroc_knn(models, projection_size, train_loader, test_loader_normal, test_loader_anomalous):
-    X_train = np.zeros((0, 512))
-
-    for xs in train_loader:
-        z_sum = torch.zeros((xs[0].shape[0], projection_size)).to(device)
-        for model, x in zip(models, xs):
-            x = x.to(device)
-            z = model(x)
-            z_sum += z
-        X_train = np.concatenate((X_train, z_sum.cpu().detach().numpy()), axis=0)
-
-    knn = KNN(n_neighbors=1)
-    knn.fit(X_train)
-
-    X_test = np.zeros((0, projection_size))
-    y_test = np.zeros(0)
-
-    for loader, type in [(test_loader_normal, 'normal'), (test_loader_anomalous, 'anomalous')]:
-        for xs in loader:
-            z_sum = torch.zeros(1, projection_size).to(device)
-            for model, x in zip(models, xs):
-                x = x.to(device)
-                z = model(x)
-                z_sum += z
-            X_test = np.concatenate((X_test, z_sum.cpu().detach().numpy()), axis=0)
-            y_test = np.concatenate((y_test, np.array([0 if type == 'normal' else 1])), axis=0)
-
-    anomaly_scores = knn.decision_function(X_test)
-
-    save_anomaly_score_samples(anomaly_scores, test_data_normal, test_data_anomalous)
-
-    return roc_auc_score(y_test, anomaly_scores)
+# def evaluate_auroc_knn(models, projection_size, train_loader, test_loader_normal, test_loader_anomalous):
+#     X_train = np.zeros((0, 512))
+#
+#     for xs in train_loader:
+#         z_sum = torch.zeros((xs[0].shape[0], projection_size)).to(device)
+#         for model, x in zip(models, xs):
+#             x = x.to(device)
+#             z = model(x)
+#             z_sum += z
+#         X_train = np.concatenate((X_train, z_sum.cpu().detach().numpy()), axis=0)
+#
+#     knn = KNN(n_neighbors=1)
+#     knn.fit(X_train)
+#
+#     X_test = np.zeros((0, projection_size))
+#     y_test = np.zeros(0)
+#
+#     for loader, type in [(test_loader_normal, 'normal'), (test_loader_anomalous, 'anomalous')]:
+#         for xs in loader:
+#             z_sum = torch.zeros(1, projection_size).to(device)
+#             for model, x in zip(models, xs):
+#                 x = x.to(device)
+#                 z = model(x)
+#                 z_sum += z
+#             X_test = np.concatenate((X_test, z_sum.cpu().detach().numpy()), axis=0)
+#             y_test = np.concatenate((y_test, np.array([0 if type == 'normal' else 1])), axis=0)
+#
+#     anomaly_scores = knn.decision_function(X_test)
+#
+#     save_anomaly_score_samples(anomaly_scores, test_data_normal, test_data_anomalous)
+#
+#     return roc_auc_score(y_test, anomaly_scores)
 
 
 def evaluate_auroc(models, projection_size, test_loader_normal, test_loader_anomalous, save_sample_figs=False, test_data_normal=None, test_data_anomalous=None):

@@ -199,7 +199,7 @@ for normal_class in range(0, 10):
                 # for z in zs:
                 #     kde_loss += norm_of_kde(z, 0.5)
 
-            loss = 0.3 * mean_loss + 0.3 * kde_loss
+            loss = 0.3 * mean_loss + 0.1 * kde_loss
 
             summed_mean_loss += mean_loss.item()
             summed_kde_loss += kde_loss.item()

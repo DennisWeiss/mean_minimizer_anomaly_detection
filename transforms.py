@@ -62,7 +62,7 @@ class Transform:
         if False:
             self.transforms = [torchvision.transforms.ToTensor() for i in range(4)]
         else:
-            self.transforms = [torchvision.transforms.ToTensor(), transform1, transform2, transform3]
+            self.transforms = [torchvision.transforms.ToTensor(), transform1, transform2, transform3, total_transform]
 
     def __call__(self, x):
         return [transform(x) for transform in self.transforms]

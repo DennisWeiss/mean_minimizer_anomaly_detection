@@ -6,7 +6,7 @@ class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
 
-        self.projection_size = 256
+        self.projection_size = 128
 
         # self.backbone = torchvision.models.resnet18(pretrained=False)
         #
@@ -16,7 +16,7 @@ class Model(nn.Module):
         # self.backbone.maxpool = nn.Identity()
         # self.backbone.fc = nn.Identity()
 
-        self.feature_size = 512
+        self.feature_size = 256
 
         self.backbone = nn.Sequential(
             nn.Conv2d(3, 32, 5, stride=1, padding=2),
@@ -34,11 +34,9 @@ class Model(nn.Module):
         )
 
         self.projector = nn.Sequential(
-            nn.Linear(self.feature_size, 1024),
+            nn.Linear(self.feature_size, 256),
             nn.ReLU(),
-            # nn.Linear(2048, 2048),
-            # nn.ReLU(),
-            nn.Linear(1024, self.projection_size),
+            nn.Linear(256, self.projection_size)
         )
 
     def forward(self, x):

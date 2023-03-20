@@ -17,10 +17,10 @@ from common import get_indices_with_lowest
 
 
 
-BATCH_SIZE = 128
-PROJECTION_DIM = 256
+BATCH_SIZE = 64
+PROJECTION_DIM = 128
 EPOCHS = 200
-LEARNING_RATE = 3e-6
+LEARNING_RATE = 1e-5
 
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -103,13 +103,13 @@ def evaluate_auroc(models, projection_size, test_loader_normal, test_loader_anom
     for loader, type in [(test_loader_normal, 'normal'), (test_loader_anomalous, 'anomalous')]:
         for xs in loader:
             anomaly_score = 0
-            for i in range(4):
-                z_sum = torch.zeros(1, projection_size).to(device)
-                for model, x in zip(models[3*i:3*(i+1)], [xs[i] for j in range(3)]):
+            z_sum = torch.zeros(1, projection_size).to(device)
+            for i in range(3):
+                for model, x in zip(models[4*i:4*(i+1)], xs):
                     x = x.to(device)
                     z = model(x)
                     z_sum += z
-                anomaly_score += (z_sum ** 2).sum(dim=1)[0].item()
+            anomaly_score += (z_sum ** 2).sum(dim=1)[0].item()
             anomaly_scores.append(anomaly_score)
             y_test.append(0 if type == 'normal' else 1)
 
@@ -125,7 +125,7 @@ def visualize_tsne(z_all, batch_size):
         z_tsne_embedded[:, 0],
         z_tsne_embedded[:, 1],
         c=['red' for i in range(batch_size)] + ['blue' for i in range(batch_size)]
-          # + ['green' for i in range(batch_size)] + ['yellow' for i in range(batch_size)]
+          + ['green' for i in range(batch_size)] + ['yellow' for i in range(batch_size)]
           # + ['orange' for i in range(batch_size)]
         # + ['orange' for i in range(batch_size)] + ['purple' for i in range(batch_size)] + ['pink' for i in range(batch_size)] + ['black' for i in range(batch_size)]
         ,
@@ -134,7 +134,7 @@ def visualize_tsne(z_all, batch_size):
     plt.savefig('tsne.png')
 
 
-for normal_class in range(0, 10):
+for normal_class in range(9, 10):
     train_data = NormalCIFAR10Dataset(normal_class, train=True, transform=Transform(test=False))
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
@@ -162,7 +162,7 @@ for normal_class in range(0, 10):
         summed_loss = 0
 
         if epoch % 5 == 0:
-            print(f'AUROC: {(100 * evaluate_auroc(models, 256, test_loader_normal, test_loader_anomalous, save_sample_figs=True, test_data_normal=test_data_normal, test_data_anomalous=test_data_anomalous)):.4f}%')
+            print(f'AUROC: {(100 * evaluate_auroc(models, PROJECTION_DIM, test_loader_normal, test_loader_anomalous, save_sample_figs=True, test_data_normal=test_data_normal, test_data_anomalous=test_data_anomalous)):.4f}%')
             # print(f'AUROC: {(100 * evaluate_auroc([model.backbone for model in models], 512, test_loader_normal, test_loader_anomalous, save_sample_figs=True, test_data_normal=test_data_normal, test_data_anomalous=test_data_anomalous)):.4f}%')
             # print(f'AUROC: {(100 * evaluate_auroc_knn([model.backbone for model in models], 512, train_loader, test_loader_normal, test_loader_anomalous)):.4f}%')
 
@@ -173,12 +173,11 @@ for normal_class in range(0, 10):
             mean_loss = torch.tensor(0.0, device=device)
             kde_loss = torch.tensor(0.0, device=device)
 
-            for i in range(4):
+            for i in range(3):
                 z_sum = torch.zeros(BATCH_SIZE, PROJECTION_DIM).to(device)
                 z_all = torch.zeros(0, PROJECTION_DIM).to(device)
                 zs = []
-
-                for model, x in zip(models[3*i:3*(i+1)], [xs[i] for j in range(3)]):
+                for model, x in zip(models[4*i:4*(i+1)], xs):
                     model.zero_grad()
                     x = x.to(device)
                     z = model(x)
@@ -192,12 +191,12 @@ for normal_class in range(0, 10):
                 #     visualize_tsne(z_all.detach().cpu().numpy(), BATCH_SIZE)
 
 
-                kde_loss += norm_of_kde(z_all, 1)
+                kde_loss += norm_of_kde(z_all, 0.5)
 
-            # kde_loss = torch.as_tensor(0.0, device=device)
-            #
+                # kde_loss = torch.as_tensor(0.0, device=device)
+                #
                 # for z in zs:
-                #     kde_loss += norm_of_kde(z, 0.5)
+                #     kde_loss += norm_of_kde(z, 0.2)
 
             loss = 0.3 * mean_loss + 0.1 * kde_loss
 

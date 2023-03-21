@@ -17,8 +17,8 @@ from common import get_indices_with_lowest
 
 
 
-BATCH_SIZE = 64
-PROJECTION_DIM = 128
+BATCH_SIZE = 128
+PROJECTION_DIM = 64
 EPOCHS = 200
 LEARNING_RATE = 1e-5
 
@@ -103,13 +103,13 @@ def evaluate_auroc(models, projection_size, test_loader_normal, test_loader_anom
     for loader, type in [(test_loader_normal, 'normal'), (test_loader_anomalous, 'anomalous')]:
         for xs in loader:
             anomaly_score = 0
-            z_sum = torch.zeros(1, projection_size).to(device)
             for i in range(3):
+                z_sum = torch.zeros(1, projection_size).to(device)
                 for model, x in zip(models[4*i:4*(i+1)], xs):
                     x = x.to(device)
                     z = model(x)
                     z_sum += z
-            anomaly_score += (z_sum ** 2).sum(dim=1)[0].item()
+                anomaly_score += (z_sum ** 2).sum(dim=1)[0].item()
             anomaly_scores.append(anomaly_score)
             y_test.append(0 if type == 'normal' else 1)
 
@@ -134,7 +134,7 @@ def visualize_tsne(z_all, batch_size):
     plt.savefig('tsne.png')
 
 
-for normal_class in range(9, 10):
+for normal_class in range(0, 1):
     train_data = NormalCIFAR10Dataset(normal_class, train=True, transform=Transform(test=False))
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 

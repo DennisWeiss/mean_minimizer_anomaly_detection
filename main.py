@@ -134,7 +134,7 @@ def visualize_tsne(z_all, batch_size):
     plt.savefig('tsne.png')
 
 
-for normal_class in range(0, 1):
+for normal_class in range(4, 5):
     train_data = NormalCIFAR10Dataset(normal_class, train=True, transform=Transform(test=False))
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
